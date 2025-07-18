@@ -1,15 +1,49 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-<head><meta charset="UTF-8"><title>Teste Som</title></head>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jogo da Aninha 💖</title>
+  <style>
+    body {
+      background-color: black;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding-top: 50px;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 18px;
+      border: none;
+      border-radius: 10px;
+      background-color: #ff69b4;
+      color: white;
+      cursor: pointer;
+    }
+  </style>
+</head>
 <body>
-  <button id="playBtn">Tocar Som</button>
-  <audio id="sound" src="magic.mp3"></audio>
+
+  <h1>Jogo da Aninha 💖</h1>
+
+  <button onclick="tocarSom()">Tocar Música</button>
+
+  <audio id="meuAudio" preload="auto">
+    <source src="som/luckydaye-magic.mp3" type="audio/mpeg" />
+    Seu navegador não suporta áudio HTML5.
+  </audio>
+
   <script>
-    const btn = document.getElementById("playBtn");
-    const sound = document.getElementById("sound");
-    btn.addEventListener("click", () => {
-      sound.play().catch(e => alert("Erro ao tocar som: " + e));
-    });
+    function tocarSom() {
+      const audio = document.getElementById("meuAudio");
+      audio.play().catch(erro => {
+        alert("Erro ao tocar som: " + erro.message);
+        console.error("Erro ao tocar som:", erro);
+      });
+    }
   </script>
+
 </body>
 </html>
