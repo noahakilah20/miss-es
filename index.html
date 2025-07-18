@@ -335,6 +335,7 @@
     document.getElementById("finalMsg").style.display = "none";
     gameOver = false;
     gameWon = false;
+    startBtn.style.display = "none";
     startAnimation();
   }
 
@@ -436,5 +437,57 @@
     });
 
     drawPaddle();
+  }
 
-    if (!gameOver ||
+  // Controlar movimento do paddle pelo mouse
+  canvas.addEventListener("mousemove", e => {
+    const rect = canvas.getBoundingClientRect();
+    let relativeX = e.clientX - rect.left;
+    if(relativeX - paddle.width/2 < 0) {
+      paddle.x = 0;
+    } else if(relativeX + paddle.width/2 > canvas.width) {
+      paddle.x = canvas.width - paddle.width;
+    } else {
+      paddle.x = relativeX - paddle.width/2;
+    }
+  });
+
+  // Liberar som após interação do usuário para evitar bloqueio do navegador
+  document.body.addEventListener('click', () => {
+    hitSound.play().catch(() => {});
+    hitSound.pause();
+    winSound.play().catch(() => {});
+    winSound.pause();
+  }, { once: true });
+
+  // Botão iniciar
+  const startBtn = document.getElementById("startBtn");
+  startBtn.addEventListener("click", () => {
+    currentPhase = 1;
+    document.getElementById("faseNumero").textContent = currentPhase;
+    score = 0;
+    document.getElementById("score").textContent = score;
+    gameOver = false;
+    gameWon = false;
+    document.getElementById("finalMsg").style.display = "none";
+    startBtn.style.display = "none";
+    resetBallAndPaddle();
+    initBricks();
+    startAnimation();
+  });
+
+  let animationId;
+
+  function startAnimation() {
+    if(animationId) cancelAnimationFrame(animationId);
+    function loop() {
+      draw();
+      if(!gameOver) {
+        animationId = requestAnimationFrame(loop);
+      }
+    }
+    loop();
+  }
+</script>
+</body>
+</html>
