@@ -6,43 +6,57 @@
   <title>Jogo da Aninha 💖</title>
   <style>
     body {
-      background-color: black;
+      background-color: #000;
       color: white;
-      font-family: Arial, sans-serif;
       text-align: center;
-      padding-top: 50px;
+      font-family: Arial, sans-serif;
+      padding-top: 100px;
     }
 
     button {
-      padding: 10px 20px;
-      font-size: 18px;
-      border: none;
+      padding: 15px 30px;
+      font-size: 20px;
       border-radius: 10px;
+      border: none;
       background-color: #ff69b4;
       color: white;
       cursor: pointer;
+    }
+
+    .mensagem {
+      margin-top: 20px;
+      font-size: 18px;
+      display: none;
     }
   </style>
 </head>
 <body>
 
   <h1>Jogo da Aninha 💖</h1>
+  <button id="playButton">▶️ Tocar Música e Iniciar</button>
 
-  <button onclick="tocarSom()">Tocar Música</button>
+  <p class="mensagem" id="mensagem">🎵 Música tocando... Jogo iniciado!</p>
 
-  <audio id="meuAudio" preload="auto">
-    <source src="som/luckydaye-magic.mp3" type="audio/mpeg" />
+  <audio id="meuAudio">
+    <source src="som/luckydaye-magic.mp3" type="audio/mpeg">
     Seu navegador não suporta áudio HTML5.
   </audio>
 
   <script>
-    function tocarSom() {
+    document.getElementById("playButton").addEventListener("click", () => {
       const audio = document.getElementById("meuAudio");
-      audio.play().catch(erro => {
-        alert("Erro ao tocar som: " + erro.message);
-        console.error("Erro ao tocar som:", erro);
+      const mensagem = document.getElementById("mensagem");
+
+      audio.play().then(() => {
+        mensagem.style.display = "block";
+        console.log("Música começou a tocar!");
+        // Aqui você pode iniciar o jogo também, exemplo:
+        // iniciarJogo();
+      }).catch(error => {
+        console.error("Erro ao tocar o som:", error);
+        alert("Erro ao tentar tocar a música. Verifique o áudio.");
       });
-    }
+    });
   </script>
 
 </body>
