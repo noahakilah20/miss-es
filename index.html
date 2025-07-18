@@ -1,81 +1,30 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <title>Jogo da Aninha 💖</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background: #000;
-      font-family: Arial, sans-serif;
-      text-align: center;
-      color: white;
-    }
-
-    h1 {
-      margin-top: 40px;
-      font-size: 32px;
-    }
-
-    button {
-      margin-top: 30px;
-      padding: 15px 30px;
-      font-size: 18px;
-      background: #ff69b4;
-      border: none;
-      border-radius: 12px;
-      color: white;
-      cursor: pointer;
-    }
-
-    canvas {
-      display: none;
-      margin-top: 30px;
-      border: 2px solid #fff;
-      background: #111;
-    }
-  </style>
+  <meta charset="UTF-8">
+  <title>Teste de Som</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body>
-  <h1>Jogo da Aninha 💖</h1>
-  <button id="startButton">▶️ Tocar música e jogar</button>
+<body style="background:#000; color:white; text-align:center; padding-top:50px;">
+
+  <h1>Teste de Som no Celular 🔊</h1>
+  <button id="playButton" style="font-size:24px; padding:15px 30px;">▶️ Tocar Música</button>
 
   <audio id="music" preload="auto">
-    <source src="magic.mp3" type="audio/mpeg" />
+    <source src="magic.mp3" type="audio/mpeg">
     Seu navegador não suporta áudio.
   </audio>
 
-  <canvas id="gameCanvas" width="400" height="500"></canvas>
-
   <script>
-    const btn = document.getElementById('startButton');
-    const music = document.getElementById('music');
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-
-    let jogoIniciado = false;
-
-    btn.addEventListener('click', () => {
-      if (jogoIniciado) return;
-
+    document.getElementById('playButton').addEventListener('click', function () {
+      const music = document.getElementById('music');
       music.play().then(() => {
-        jogoIniciado = true;
-        btn.style.display = 'none';
-        canvas.style.display = 'block';
-
-        // Exemplo simples: texto no canvas
-        ctx.fillStyle = '#ff69b4';
-        ctx.font = '24px Arial';
-        ctx.fillText('🎮 Jogo iniciado com sucesso!', 50, 250);
-
-        // Aqui você pode chamar sua função de iniciar jogo
-        // iniciarJogo();
-      }).catch(err => {
-        alert('Clique novamente para ativar o som 🔊');
+        alert("🔊 Música está tocando!");
+      }).catch(() => {
+        alert("⚠️ Clique novamente para ativar o som");
       });
     });
   </script>
+
 </body>
 </html>
