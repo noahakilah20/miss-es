@@ -3,35 +3,36 @@
 <head>
   <meta charset="UTF-8" />
   <title>Jogo da Aninha 💖</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
       margin: 0;
       padding: 0;
       background: #000;
       font-family: Arial, sans-serif;
-      color: #fff;
       text-align: center;
+      color: white;
     }
 
     h1 {
-      margin-top: 100px;
+      margin-top: 40px;
       font-size: 32px;
     }
 
     button {
-      background-color: #ff4081;
-      color: white;
-      border: none;
+      margin-top: 30px;
       padding: 15px 30px;
       font-size: 18px;
-      border-radius: 10px;
-      margin-top: 30px;
+      background: #ff69b4;
+      border: none;
+      border-radius: 12px;
+      color: white;
       cursor: pointer;
     }
 
     canvas {
       display: none;
-      margin-top: 20px;
+      margin-top: 30px;
       border: 2px solid #fff;
       background: #111;
     }
@@ -39,67 +40,42 @@
 </head>
 <body>
   <h1>Jogo da Aninha 💖</h1>
-  <button id="startBtn">▶️ Tocar Música e Iniciar</button>
-  <audio id="bgMusic" preload="auto">
+  <button id="startButton">▶️ Tocar música e jogar</button>
+
+  <audio id="music" preload="auto">
     <source src="magic.mp3" type="audio/mpeg" />
     Seu navegador não suporta áudio.
   </audio>
+
   <canvas id="gameCanvas" width="400" height="500"></canvas>
 
   <script>
-    const startBtn = document.getElementById('startBtn');
-    const bgMusic = document.getElementById('bgMusic');
+    const btn = document.getElementById('startButton');
+    const music = document.getElementById('music');
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
     let jogoIniciado = false;
 
-    startBtn.addEventListener('touchend', iniciar); // toque em celular
-    startBtn.addEventListener('click', iniciar);    // clique em desktop
-
-    function iniciar() {
+    btn.addEventListener('click', () => {
       if (jogoIniciado) return;
 
-      // Tenta tocar música após interação real
-      const tocar = bgMusic.play();
-
-      if (tocar !== undefined) {
-        tocar.then(() => {
-          iniciarJogo();
-        }).catch(() => {
-          alert("Ative o som tocando na tela novamente.");
-        });
-      }
-
-      function iniciarJogo() {
+      music.play().then(() => {
         jogoIniciado = true;
-        startBtn.style.display = "none";
-        canvas.style.display = "block";
+        btn.style.display = 'none';
+        canvas.style.display = 'block';
 
-        let x = 50;
-        let y = 50;
-        let dx = 2;
-        let dy = 2;
+        // Exemplo simples: texto no canvas
+        ctx.fillStyle = '#ff69b4';
+        ctx.font = '24px Arial';
+        ctx.fillText('🎮 Jogo iniciado com sucesso!', 50, 250);
 
-        function desenhar() {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          ctx.fillStyle = '#ff4081';
-          ctx.beginPath();
-          ctx.arc(x, y, 10, 0, Math.PI * 2);
-          ctx.fill();
-
-          x += dx;
-          y += dy;
-
-          if (x + 10 > canvas.width || x - 10 < 0) dx = -dx;
-          if (y + 10 > canvas.height || y - 10 < 0) dy = -dy;
-
-          requestAnimationFrame(desenhar);
-        }
-
-        desenhar();
-      }
-    }
+        // Aqui você pode chamar sua função de iniciar jogo
+        // iniciarJogo();
+      }).catch(err => {
+        alert('Clique novamente para ativar o som 🔊');
+      });
+    });
   </script>
 </body>
 </html>
