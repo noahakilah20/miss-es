@@ -2,62 +2,99 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Jogo da Aninha 💖</title>
   <style>
     body {
-      background-color: #000;
-      color: white;
-      text-align: center;
+      margin: 0;
+      padding: 0;
+      background: #000;
       font-family: Arial, sans-serif;
-      padding-top: 100px;
+      color: #fff;
+      text-align: center;
+    }
+
+    h1 {
+      margin-top: 100px;
+      font-size: 32px;
     }
 
     button {
-      padding: 15px 30px;
-      font-size: 20px;
-      border-radius: 10px;
-      border: none;
-      background-color: #ff69b4;
+      background-color: #c2185b;
       color: white;
+      border: none;
+      padding: 15px 30px;
+      font-size: 18px;
+      border-radius: 10px;
+      margin-top: 30px;
       cursor: pointer;
     }
 
-    .mensagem {
-      margin-top: 20px;
-      font-size: 18px;
+    button:hover {
+      background-color: #ad1457;
+    }
+
+    canvas {
       display: none;
+      margin-top: 20px;
+      border: 2px solid #fff;
+      background: #111;
     }
   </style>
 </head>
 <body>
-
   <h1>Jogo da Aninha 💖</h1>
-  <button id="playButton">▶️ Tocar Música e Iniciar</button>
+  <button id="startBtn">▶️ Tocar Música e Iniciar</button>
+  <audio id="bgMusic" src="magic.mp3" preload="auto"></audio>
 
-  <p class="mensagem" id="mensagem">🎵 Música tocando... Jogo iniciado!</p>
-
-  <audio id="meuAudio">
-    <source src="som/luckydaye-magic.mp3" type="audio/mpeg">
-    Seu navegador não suporta áudio HTML5.
-  </audio>
+  <canvas id="gameCanvas" width="400" height="500"></canvas>
 
   <script>
-    document.getElementById("playButton").addEventListener("click", () => {
-      const audio = document.getElementById("meuAudio");
-      const mensagem = document.getElementById("mensagem");
+    const startBtn = document.getElementById('startBtn');
+    const bgMusic = document.getElementById('bgMusic');
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
 
-      audio.play().then(() => {
-        mensagem.style.display = "block";
-        console.log("Música começou a tocar!");
-        // Aqui você pode iniciar o jogo também, exemplo:
-        // iniciarJogo();
-      }).catch(error => {
-        console.error("Erro ao tocar o som:", error);
-        alert("Erro ao tentar tocar a música. Verifique o áudio.");
-      });
+    let gameStarted = false;
+
+    startBtn.addEventListener('click', async () => {
+      if (!gameStarted) {
+        try {
+          await bgMusic.play(); // Toca a música
+        } catch (e) {
+          alert('Clique novamente para ativar o som.');
+          return;
+        }
+
+        startBtn.style.display = 'none';
+        canvas.style.display = 'block';
+        gameStarted = true;
+        iniciarJogo();
+      }
     });
-  </script>
 
+    function iniciarJogo() {
+      let x = 50;
+      let y = 50;
+      let dx = 2;
+      let dy = 2;
+
+      function desenhar() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#e91e63';
+        ctx.beginPath();
+        ctx.arc(x, y, 10, 0, Math.PI * 2);
+        ctx.fill();
+        x += dx;
+        y += dy;
+
+        if (x + 10 > canvas.width || x - 10 < 0) dx = -dx;
+        if (y + 10 > canvas.height || y - 10 < 0) dy = -dy;
+
+        requestAnimationFrame(desenhar);
+      }
+
+      desenhar();
+    }
+  </script>
 </body>
 </html>
