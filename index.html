@@ -19,7 +19,7 @@
     }
 
     button {
-      background-color: #c2185b;
+      background-color: #ff4081;
       color: white;
       border: none;
       padding: 15px 30px;
@@ -27,10 +27,6 @@
       border-radius: 10px;
       margin-top: 30px;
       cursor: pointer;
-    }
-
-    button:hover {
-      background-color: #ad1457;
     }
 
     canvas {
@@ -44,8 +40,10 @@
 <body>
   <h1>Jogo da Aninha 💖</h1>
   <button id="startBtn">▶️ Tocar Música e Iniciar</button>
-  <audio id="bgMusic" src="magic.mp3" preload="auto"></audio>
-
+  <audio id="bgMusic" preload="auto">
+    <source src="magic.mp3" type="audio/mpeg" />
+    Seu navegador não suporta áudio.
+  </audio>
   <canvas id="gameCanvas" width="400" height="500"></canvas>
 
   <script>
@@ -54,46 +52,53 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
-    let gameStarted = false;
+    let jogoIniciado = false;
 
-    startBtn.addEventListener('click', async () => {
-      if (!gameStarted) {
-        try {
-          await bgMusic.play(); // Toca a música
-        } catch (e) {
-          alert('Clique novamente para ativar o som.');
-          return;
+    startBtn.addEventListener('touchend', iniciar); // toque em celular
+    startBtn.addEventListener('click', iniciar);    // clique em desktop
+
+    function iniciar() {
+      if (jogoIniciado) return;
+
+      // Tenta tocar música após interação real
+      const tocar = bgMusic.play();
+
+      if (tocar !== undefined) {
+        tocar.then(() => {
+          iniciarJogo();
+        }).catch(() => {
+          alert("Ative o som tocando na tela novamente.");
+        });
+      }
+
+      function iniciarJogo() {
+        jogoIniciado = true;
+        startBtn.style.display = "none";
+        canvas.style.display = "block";
+
+        let x = 50;
+        let y = 50;
+        let dx = 2;
+        let dy = 2;
+
+        function desenhar() {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.fillStyle = '#ff4081';
+          ctx.beginPath();
+          ctx.arc(x, y, 10, 0, Math.PI * 2);
+          ctx.fill();
+
+          x += dx;
+          y += dy;
+
+          if (x + 10 > canvas.width || x - 10 < 0) dx = -dx;
+          if (y + 10 > canvas.height || y - 10 < 0) dy = -dy;
+
+          requestAnimationFrame(desenhar);
         }
 
-        startBtn.style.display = 'none';
-        canvas.style.display = 'block';
-        gameStarted = true;
-        iniciarJogo();
+        desenhar();
       }
-    });
-
-    function iniciarJogo() {
-      let x = 50;
-      let y = 50;
-      let dx = 2;
-      let dy = 2;
-
-      function desenhar() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#e91e63';
-        ctx.beginPath();
-        ctx.arc(x, y, 10, 0, Math.PI * 2);
-        ctx.fill();
-        x += dx;
-        y += dy;
-
-        if (x + 10 > canvas.width || x - 10 < 0) dx = -dx;
-        if (y + 10 > canvas.height || y - 10 < 0) dy = -dy;
-
-        requestAnimationFrame(desenhar);
-      }
-
-      desenhar();
     }
   </script>
 </body>
