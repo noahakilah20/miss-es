@@ -2,265 +2,176 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>Jogo da Aninha 💖</title>
+  <title>Jogo da Aninha com Vídeo 💖</title>
   <style>
     body {
-      display: flex;
-      justify-content: center;
-      margin-top: 20px;
-      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
       background: #fff;
+      font-family: Arial, sans-serif;
+    }
+    .container {
       position: relative;
-      user-select: none;
+      width: 400px;
+      height: 600px;
+      margin: 20px auto;
+      border: 2px solid #000;
+      background: #fff;
     }
-    #gameCanvas {
-      border: 2px solid black;
-      background-image: url('https://harikacocuklarizmir.com/images/uploads/2dc834e1801c5d89034a2b8454d42ce8.jpg');
-      background-size: contain;
-      background-repeat: no-repeat;
-      background-position: center bottom;
-      touch-action: none;
-    }
-    #info {
-      position: absolute;
-      top: 10px;
-      left: 20px;
-      font-weight: bold;
-      color: black;
-      z-index: 10;
-    }
-    #finalMsg {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-weight: bold;
-      font-size: 20px;
-      color: black;
-      display: none;
-      text-align: center;
-      background: rgba(255,255,255,0.9);
-      padding: 15px 25px;
-      border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.3);
-      z-index: 20;
+    canvas {
+      display: block;
+      background: #fff;
     }
   </style>
 </head>
 <body>
-  <canvas id="gameCanvas" width="400" height="600"></canvas>
-  <div id="info">Pontuação: <span id="score">0</span> | Recorde: <span id="highScore">0</span></div>
-  <div id="finalMsg"></div>
-
+  <div class="container">
+    <canvas id="gameCanvas" width="400" height="600"></canvas>
+  </div>
+  <audio id="hitSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_f6a22995b5.mp3?filename=game-hit-1992.mp3"></audio>
+  <audio id="winSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_99e3f3489b.mp3?filename=game-win-1991.mp3"></audio>
   <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
+    const hitSound = document.getElementById("hitSound");
+    const winSound = document.getElementById("winSound");
 
-    const paddle = { width: 80, height: 10, x: canvas.width / 2 - 40, y: canvas.height - 30, speed: 7 };
-    let balls = [{ x: canvas.width / 2, y: canvas.height - 50, dx: 3, dy: -3, radius: 7 }];
+    const paddle = {
+      width: 80,
+      height: 10,
+      x: canvas.width / 2 - 40,
+      y: canvas.height - 30,
+      speed: 5,
+    };
 
-    const bricks = [];
-    const brickWidth = 30;
-    const brickHeight = 25;
-    const brickPadding = 5;
-    const brickOffsetTop = 30;
-    const brickOffsetLeft = 40;
+    const ball = {
+      x: canvas.width / 2,
+      y: canvas.height - 50,
+      radius: 7,
+      dx: 2,
+      dy: -2,
+    };
 
-    let score = 0;
-    let highScore = localStorage.getItem("highScore") || 0;
-    document.getElementById("highScore").textContent = highScore;
+    const blockRowCount = 5;
+    const blockColumnCount = 8;
+    const blockWidth = 40;
+    const blockHeight = 20;
+    const blockPadding = 5;
+    const blockOffsetTop = 50;
+    const blockOffsetLeft = 30;
 
-    const compliments = ["Você arrasa, Aninha! 🌟", "Orgulho define, Aninha! 🥰", "Você é um solzinho, Aninha! ☀️"];
+    let currentLevel = 1;
+    let blocks = [];
 
-    let gameOver = false;
-    let currentLevel = 0;
+    const level3Colors = ["#FFC0CB", "#FF69B4", "#FFB6C1", "#FFA07A", "#F08080"];
 
-    const levels = [
-      { name: "Coração", shape: [
-        [0,0,1,1,0,1,1,0,0],
-        [0,1,1,1,1,1,1,1,0],
-        [1,1,1,1,1,1,1,1,1],
-        [1,1,1,1,1,1,1,1,1],
-        [0,1,1,1,1,1,1,1,0],
-        [0,0,1,1,1,1,1,0,0],
-        [0,0,0,1,1,1,0,0,0],
-        [0,0,0,0,1,0,0,0,0]
-      ]},
-      { name: "Letra A", shape: [
-        [0,0,0,1,1,0,0,0,0],
-        [0,0,1,0,0,1,0,0,0],
-        [0,1,0,0,0,0,1,0,0],
-        [1,1,1,1,1,1,1,1,0],
-        [1,0,0,0,0,0,0,1,0],
-        [1,0,0,0,0,0,0,1,0]
-      ]},
-      { name: "AMOR", shape: [
-        [1,1,0,0,1,0,1,1,1,0,1,1,1],
-        [1,1,1,0,1,0,1,0,1,0,1,0,1],
-        [1,0,1,0,1,0,1,1,1,0,1,1,1],
-        [1,0,1,0,1,0,1,0,1,0,1,0,0],
-        [1,0,1,0,1,0,1,0,1,0,1,0,0]
-      ]},
-      { name: "Sorrisinho", shape: [
-        [0,1,0,0,0,0,0,1,0],
-        [0,1,0,0,0,0,0,1,0],
-        [0,0,0,0,0,0,0,0,0],
-        [1,0,0,0,0,0,0,0,1],
-        [0,1,0,0,0,0,0,1,0],
-        [0,0,1,1,1,1,1,0,0]
-      ]},
-      { name: "Laço", shape: [
-        [1,0,0,0,0,0,0,0,1],
-        [0,1,0,0,0,0,0,1,0],
-        [0,0,1,0,0,0,1,0,0],
-        [0,0,0,1,1,1,0,0,0],
-        [0,0,1,0,0,0,1,0,0],
-        [0,1,0,0,0,0,0,1,0],
-        [1,0,0,0,0,0,0,0,1]
-      ]}
-    ];
-
-    function initBricks() {
-      bricks.length = 0;
-      const shape = levels[currentLevel].shape;
-      for (let r = 0; r < shape.length; r++) {
-        for (let c = 0; c < shape[r].length; c++) {
-          if (shape[r][c] === 1) {
-            const brickX = c * (brickWidth + brickPadding) + brickOffsetLeft;
-            const brickY = r * (brickHeight + brickPadding) + brickOffsetTop;
-            bricks.push({ x: brickX, y: brickY, status: true });
-          }
+    function createBlocks(level) {
+      blocks = [];
+      for (let c = 0; c < blockColumnCount; c++) {
+        for (let r = 0; r < blockRowCount; r++) {
+          let brickX = c * (blockWidth + blockPadding) + blockOffsetLeft;
+          let brickY = r * (blockHeight + blockPadding) + blockOffsetTop;
+          blocks.push({ x: brickX, y: brickY, status: 1, color: level3Colors[(r + c) % level3Colors.length] });
         }
       }
     }
 
+    createBlocks(currentLevel);
+
+    function drawBlocks() {
+      blocks.forEach(block => {
+        if (block.status === 1) {
+          if (currentLevel === 3) {
+            ctx.beginPath();
+            ctx.arc(block.x + blockWidth / 2, block.y + blockHeight / 2, 10, 0, Math.PI * 2);
+            ctx.fillStyle = block.color;
+            ctx.fill();
+            ctx.closePath();
+          } else {
+            const heart = new Image();
+            heart.src = "https://em-content.zobj.net/thumbs/120/apple/354/heart-decoration_1f49f.png";
+            ctx.drawImage(heart, block.x, block.y, blockWidth, blockHeight);
+          }
+        }
+      });
+    }
+
     function drawPaddle() {
-      ctx.fillStyle = "#87CEFA";
+      ctx.fillStyle = "#00f";
       ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
     }
 
-    function drawBalls() {
-      balls.forEach(ball => {
-        ctx.beginPath();
-        ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-        ctx.fillStyle = "#ff69b4";
-        ctx.fill();
-        ctx.closePath();
-      });
-    }
-
-    function drawBricks() {
-      bricks.forEach(brick => {
-        if (brick.status) {
-          ctx.fillStyle = "#ff3399";
-          ctx.fillRect(brick.x, brick.y, brickWidth, brickHeight);
-          ctx.fillStyle = "black";
-          ctx.font = "20px Arial";
-          ctx.fillText("❤️", brick.x + 4, brick.y + 20);
-        }
-      });
+    function drawBall() {
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+      ctx.fillStyle = "#f39";
+      ctx.fill();
+      ctx.closePath();
     }
 
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawBlocks();
       drawPaddle();
-      drawBalls();
-      drawBricks();
+      drawBall();
 
-      balls.forEach((ball, index) => {
-        ball.x += ball.dx;
-        ball.y += ball.dy;
+      ball.x += ball.dx;
+      ball.y += ball.dy;
 
-        if (ball.x + ball.dx > canvas.width - ball.radius || ball.x + ball.dx < ball.radius) ball.dx = -ball.dx;
-        if (ball.y + ball.dy < ball.radius) ball.dy = -ball.dy;
-        else if (ball.y + ball.dy > canvas.height - ball.radius) {
-          balls.splice(index, 1);
-          if (balls.length === 0) {
-            gameOver = true;
-            document.getElementById("finalMsg").textContent = "Game Over! Tente novamente, Aninha! ❤️";
-            document.getElementById("finalMsg").style.display = "block";
+      if (ball.x + ball.radius > canvas.width || ball.x - ball.radius < 0) ball.dx *= -1;
+      if (ball.y - ball.radius < 0) ball.dy *= -1;
+      if (ball.y + ball.radius > canvas.height) {
+        alert("Fim de jogo!");
+        document.location.reload();
+      }
+
+      if (
+        ball.x > paddle.x &&
+        ball.x < paddle.x + paddle.width &&
+        ball.y + ball.radius > paddle.y
+      ) {
+        ball.dy *= -1;
+      }
+
+      blocks.forEach(block => {
+        if (block.status === 1) {
+          if (
+            ball.x > block.x &&
+            ball.x < block.x + blockWidth &&
+            ball.y > block.y &&
+            ball.y < block.y + blockHeight
+          ) {
+            ball.dy *= -1;
+            block.status = 0;
+            hitSound.currentTime = 0;
+            hitSound.play();
           }
         }
-
-        if (
-          ball.x > paddle.x &&
-          ball.x < paddle.x + paddle.width &&
-          ball.y + ball.radius > paddle.y &&
-          ball.y - ball.radius < paddle.y + paddle.height
-        ) {
-          ball.dy = -ball.dy;
-          ball.y = paddle.y - ball.radius;
-        }
-
-        bricks.forEach(brick => {
-          if (brick.status) {
-            if (
-              ball.x > brick.x &&
-              ball.x < brick.x + brickWidth &&
-              ball.y > brick.y &&
-              ball.y < brick.y + brickHeight
-            ) {
-              ball.dy = -ball.dy;
-              brick.status = false;
-              score++;
-              document.getElementById("score").textContent = score;
-              if (score > highScore) {
-                highScore = score;
-                localStorage.setItem("highScore", highScore);
-                document.getElementById("highScore").textContent = highScore;
-              }
-              if (balls.length < 10) {
-                balls.push({ x: ball.x, y: ball.y, dx: -ball.dx, dy: ball.dy, radius: 7 });
-              }
-              const compliment = compliments[Math.floor(Math.random() * compliments.length)];
-              const msg = document.createElement("div");
-              msg.textContent = compliment;
-              msg.style.position = "absolute";
-              msg.style.left = `${brick.x + 20}px`;
-              msg.style.top = `${brick.y + 60}px`;
-              msg.style.color = "black";
-              msg.style.fontWeight = "bold";
-              msg.style.fontSize = "16px";
-              document.body.appendChild(msg);
-              setTimeout(() => msg.remove(), 1500);
-            }
-          }
-        });
       });
 
-      if (bricks.every(b => !b.status)) {
-        currentLevel++;
-        if (currentLevel < levels.length) {
-          score = 0;
-          balls = [{ x: canvas.width / 2, y: canvas.height - 50, dx: 3, dy: -3, radius: 7 }];
-          paddle.x = canvas.width / 2 - paddle.width / 2;
-          initBricks();
-          document.getElementById("finalMsg").textContent = `❤️ Fase "${levels[currentLevel - 1].name}" concluída! Prepare-se para a próxima! ❤️`;
-          document.getElementById("finalMsg").style.display = "block";
-          setTimeout(() => {
-            document.getElementById("finalMsg").style.display = "none";
-            draw();
-          }, 3000);
-          return;
+      if (blocks.every(b => b.status === 0)) {
+        if (currentLevel < 3) {
+          currentLevel++;
+          createBlocks(currentLevel);
+          ball.x = canvas.width / 2;
+          ball.y = canvas.height - 50;
+          ball.dx = 2;
+          ball.dy = -2;
         } else {
-          gameOver = true;
-          document.getElementById("finalMsg").textContent = "🎉 Todas as fases concluídas! Você é maravilhosa, Aninha! 🎉";
-          document.getElementById("finalMsg").style.display = "block";
+          winSound.play();
+          alert("Você venceu todas as fases! 💖");
+          document.location.reload();
         }
       }
 
-      if (!gameOver || balls.length > 0) requestAnimationFrame(draw);
+      requestAnimationFrame(draw);
     }
 
-    document.addEventListener("mousemove", e => {
-      if (!gameOver) {
-        const rect = canvas.getBoundingClientRect();
-        paddle.x = e.clientX - rect.left - paddle.width / 2;
-        paddle.x = Math.min(Math.max(paddle.x, 0), canvas.width - paddle.width);
-      }
+    document.addEventListener("keydown", e => {
+      if (e.key === "ArrowLeft" && paddle.x > 0) paddle.x -= paddle.speed * 2;
+      if (e.key === "ArrowRight" && paddle.x + paddle.width < canvas.width) paddle.x += paddle.speed * 2;
     });
 
-    initBricks();
     draw();
   </script>
 </body>
