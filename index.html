@@ -2,182 +2,249 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>Jogo da Aninha 💖</title>
+  <title>Jogo da Aninha - Fase 3 🎮🌸</title>
   <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background: #fff;
-      font-family: Arial, sans-serif;
-    }
-    .container {
-      position: relative;
-      width: 400px;
-      height: 600px;
-      margin: 20px auto;
-      border: 2px solid #000;
-      overflow: hidden;
-      background-color: white;
-    }
-    canvas {
-      display: block;
-    }
+    body { margin: 0; padding: 0; background: #fff; font-family: Arial, sans-serif; }
+    canvas { background: #fff; display: block; margin: 0 auto; border: 2px solid #000; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <canvas id="gameCanvas" width="400" height="600"></canvas>
-  </div>
 
-  <audio id="hitSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_a0a8f47016.mp3?filename=pop-94319.mp3"></audio>
-  <audio id="winSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_126258870f.mp3?filename=success-1-6297.mp3"></audio>
+<audio id="blocoSound" src="sounds/bloco.mp3"></audio>
+<audio id="vitoriaSound" src="sounds/vitoria.mp3"></audio>
 
-  <script>
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
+<canvas id="jogo" width="400" height="600"></canvas>
 
-    const paddle = {
-      width: 80,
-      height: 10,
-      x: canvas.width / 2 - 40,
-      y: canvas.height - 20,
-      color: "blue"
-    };
+<script>
+  const canvas = document.getElementById("jogo");
+  const ctx = canvas.getContext("2d");
 
-    const ball = {
-      x: canvas.width / 2,
-      y: canvas.height / 2,
-      radius: 8,
-      color: "#ff1493",
-      dx: 3,
-      dy: -3
-    };
+  // Bola
+  let bola = {
+    x: canvas.width / 2,
+    y: canvas.height - 30,
+    dx: 3,
+    dy: -3,
+    raio: 10,
+    cor: "#ff69b4"
+  };
 
-    let blocks = [];
-    const blockRowCount = 5;
-    const blockColumnCount = 9;
-    const blockWidth = 35;
-    const blockHeight = 20;
-    const blockPadding = 8;
-    const blockOffsetTop = 40;
-    const blockOffsetLeft = 20;
+  // Barra
+  let barra = {
+    altura: 10,
+    largura: 75,
+    x: (canvas.width - 75) / 2
+  };
 
-    const colors = ["red", "pink", "white", "blue", "gold"];
-    const hearts = "❤️";
+  // Controle do teclado
+  let direitaPressionada = false;
+  let esquerdaPressionada = false;
 
-    const hitSound = document.getElementById("hitSound");
-    const winSound = document.getElementById("winSound");
+  document.addEventListener("keydown", teclaPressionada, false);
+  document.addEventListener("keyup", teclaSolta, false);
 
-    function generateBlocks() {
-      blocks = [];
-      for (let row = 0; row < blockRowCount; row++) {
-        for (let col = 0; col < blockColumnCount; col++) {
-          const x = col * (blockWidth + blockPadding) + blockOffsetLeft;
-          const y = row * (blockHeight + blockPadding) + blockOffsetTop;
-          const color = colors[(row + col) % colors.length];
-          blocks.push({ x, y, status: 1, color });
-        }
+  function teclaPressionada(e) {
+    if (e.key === "ArrowRight" || e.key === "Right") direitaPressionada = true;
+    else if (e.key === "ArrowLeft" || e.key === "Left") esquerdaPressionada = true;
+  }
+
+  function teclaSolta(e) {
+    if (e.key === "ArrowRight" || e.key === "Right") direitaPressionada = false;
+    else if (e.key === "ArrowLeft" || e.key === "Left") esquerdaPressionada = false;
+  }
+
+  // Tijolos
+  const linha = 4;
+  const coluna = 7;
+  const larguraTijolo = 50;
+  const alturaTijolo = 20;
+  const espacamento = 10;
+  const margemSuperior = 30;
+  const margemLateral = 30;
+
+  let tijolos = [];
+  for (let c = 0; c < coluna; c++) {
+    tijolos[c] = [];
+    for (let l = 0; l < linha; l++) {
+      tijolos[c][l] = { x: 0, y: 0, visivel: true };
+    }
+  }
+
+  // Bolinhas coloridas que aparecem quando o tijolo é destruído
+  let particulas = [];
+
+  function criaParticulas(x, y) {
+    const cores = ["#ff69b4", "#ff0000", "#00bfff", "#ffff00", "#800080"];
+    for (let i = 0; i < 15; i++) {
+      particulas.push({
+        x: x + larguraTijolo / 2,
+        y: y + alturaTijolo / 2,
+        dx: (Math.random() - 0.5) * 4,
+        dy: (Math.random() - 0.5) * 4,
+        raio: Math.random() * 3 + 2,
+        cor: cores[Math.floor(Math.random() * cores.length)],
+        alpha: 1
+      });
+    }
+  }
+
+  function atualizaParticulas() {
+    for (let i = particulas.length -1; i >= 0; i--) {
+      const p = particulas[i];
+      p.x += p.dx;
+      p.y += p.dy;
+      p.alpha -= 0.02;
+      if (p.alpha <= 0) {
+        particulas.splice(i, 1);
       }
     }
+  }
 
-    generateBlocks();
-
-    document.addEventListener("mousemove", (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      paddle.x = mouseX - paddle.width / 2;
-
-      if (paddle.x < 0) paddle.x = 0;
-      if (paddle.x + paddle.width > canvas.width) paddle.x = canvas.width - paddle.width;
-    });
-
-    function drawPaddle() {
-      ctx.fillStyle = paddle.color;
-      ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
-    }
-
-    function drawBall() {
+  function desenhaParticulas() {
+    particulas.forEach(p => {
       ctx.beginPath();
-      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-      ctx.fillStyle = ball.color;
+      ctx.arc(p.x, p.y, p.raio, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${hexToRgb(p.cor)},${p.alpha})`;
       ctx.fill();
       ctx.closePath();
-    }
+    });
+  }
 
-    function drawBlocks() {
-      blocks.forEach((block) => {
-        if (block.status === 1) {
-          ctx.fillStyle = block.color;
-          ctx.fillRect(block.x, block.y, blockWidth, blockHeight);
-          ctx.fillStyle = "white";
-          ctx.font = "16px Arial";
-          ctx.fillText("❤", block.x + 8, block.y + 16);
+  // Converter hex para rgb para usar no rgba()
+  function hexToRgb(hex) {
+    hex = hex.replace("#", "");
+    let bigint = parseInt(hex, 16);
+    let r = (bigint >> 16) & 255;
+    let g = (bigint >> 8) & 255;
+    let b = bigint & 255;
+    return `${r},${g},${b}`;
+  }
+
+  // Sons do jogo
+  const audioTijolo = document.getElementById("blocoSound");
+  const audioVitoria = document.getElementById("vitoriaSound");
+
+  // Desenhar a bola
+  function desenhaBola() {
+    ctx.beginPath();
+    ctx.arc(bola.x, bola.y, bola.raio, 0, Math.PI * 2);
+    ctx.fillStyle = bola.cor;
+    ctx.fill();
+    ctx.closePath();
+  }
+
+  // Desenhar a barra
+  function desenhaBarra() {
+    ctx.beginPath();
+    ctx.rect(barra.x, canvas.height - barra.altura, barra.largura, barra.altura);
+    ctx.fillStyle = "#0000FF";
+    ctx.fill();
+    ctx.closePath();
+  }
+
+  // Desenhar tijolos
+  function desenhaTijolos() {
+    for (let c = 0; c < coluna; c++) {
+      for (let l = 0; l < linha; l++) {
+        if (tijolos[c][l].visivel) {
+          let tijoloX = c * (larguraTijolo + espacamento) + margemLateral;
+          let tijoloY = l * (alturaTijolo + espacamento) + margemSuperior;
+          tijolos[c][l].x = tijoloX;
+          tijolos[c][l].y = tijoloY;
+          ctx.beginPath();
+          ctx.rect(tijoloX, tijoloY, larguraTijolo, alturaTijolo);
+          ctx.fillStyle = "#ccc";
+          ctx.fill();
+          ctx.closePath();
         }
-      });
+      }
     }
+  }
 
-    function collisionDetection() {
-      blocks.forEach((block) => {
-        if (
-          block.status === 1 &&
-          ball.x > block.x &&
-          ball.x < block.x + blockWidth &&
-          ball.y > block.y &&
-          ball.y < block.y + blockHeight
-        ) {
-          ball.dy *= -1;
-          block.status = 0;
-          hitSound.play();
+  // Detectar colisão da bola com os tijolos
+  function detectarColisao() {
+    for (let c = 0; c < coluna; c++) {
+      for (let l = 0; l < linha; l++) {
+        let t = tijolos[c][l];
+        if (t.visivel) {
+          if (
+            bola.x > t.x &&
+            bola.x < t.x + larguraTijolo &&
+            bola.y > t.y &&
+            bola.y < t.y + alturaTijolo
+          ) {
+            bola.dy = -bola.dy;
+            t.visivel = false;
 
-          if (blocks.every((b) => b.status === 0)) {
-            winSound.play();
-            setTimeout(() => {
-              alert("🌹 Você venceu a Fase do Amor Carinhoso!");
-              generateBlocks(); // Recomeça com novos blocos
-              ball.x = canvas.width / 2;
-              ball.y = canvas.height / 2;
-              ball.dx = 3;
-              ball.dy = -3;
-            }, 300);
+            // Tocar som do tijolo
+            audioTijolo.currentTime = 0;
+            audioTijolo.play();
+
+            // Criar partículas coloridas na posição do tijolo destruído
+            criaParticulas(t.x, t.y);
+
+            // Mudar cor da bola
+            mudarCorBola();
+
+            // Verificar vitória
+            if (todosTijolosDestruídos()) {
+              audioVitoria.play();
+              setTimeout(() => alert("Parabéns! Você venceu a fase 3! 🎉"), 200);
+            }
           }
         }
-      });
+      }
+    }
+  }
+
+  // Mudar cor da bola aleatoriamente
+  function mudarCorBola() {
+    const cores = ["#ff69b4", "#ff0000", "#00bfff", "#ffff00", "#800080"];
+    bola.cor = cores[Math.floor(Math.random() * cores.length)];
+  }
+
+  // Verifica se todos os tijolos foram destruídos
+  function todosTijolosDestruídos() {
+    for (let c = 0; c < coluna; c++) {
+      for (let l = 0; l < linha; l++) {
+        if (tijolos[c][l].visivel) return false;
+      }
+    }
+    return true;
+  }
+
+  // Função principal do desenho do jogo
+  function desenha() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    desenhaTijolos();
+    desenhaBola();
+    desenhaBarra();
+    detectarColisao();
+    desenhaParticulas();
+    atualizaParticulas();
+
+    // Colisão com paredes
+    if (bola.x + bola.dx > canvas.width - bola.raio || bola.x + bola.dx < bola.raio) bola.dx = -bola.dx;
+    if (bola.y + bola.dy < bola.raio) bola.dy = -bola.dy;
+    else if (bola.y + bola.dy > canvas.height - bola.raio) {
+      if (bola.x > barra.x && bola.x < barra.x + barra.largura) bola.dy = -bola.dy;
+      else document.location.reload();
     }
 
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawPaddle();
-      drawBall();
-      drawBlocks();
-      collisionDetection();
+    // Movimentação da bola
+    bola.x += bola.dx;
+    bola.y += bola.dy;
 
-      // Movimento da bolinha
-      ball.x += ball.dx;
-      ball.y += ball.dy;
+    // Movimentação da barra
+    if (direitaPressionada && barra.x < canvas.width - barra.largura) barra.x += 7;
+    else if (esquerdaPressionada && barra.x > 0) barra.x -= 7;
 
-      if (ball.x + ball.radius > canvas.width || ball.x - ball.radius < 0) {
-        ball.dx *= -1;
-      }
+    requestAnimationFrame(desenha);
+  }
 
-      if (ball.y - ball.radius < 0) {
-        ball.dy *= -1;
-      } else if (
-        ball.y + ball.radius > paddle.y &&
-        ball.x > paddle.x &&
-        ball.x < paddle.x + paddle.width
-      ) {
-        ball.dy *= -1;
-      }
+  desenha();
+</script>
 
-      if (ball.y + ball.radius > canvas.height) {
-        alert("😭 Game Over! Tente novamente.");
-        document.location.reload();
-      }
-
-      requestAnimationFrame(draw);
-    }
-
-    draw();
-  </script>
 </body>
 </html>
