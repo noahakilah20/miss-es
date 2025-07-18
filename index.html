@@ -4,262 +4,212 @@
   <meta charset="UTF-8" />
   <title>Jogo da Aninha 💖</title>
   <style>
-    body {
-      margin: 0;
-      background: #fff0f5;
-      font-family: 'Comic Sans MS', cursive;
-      text-align: center;
-    }
-    canvas {
-      background: #fff;
+    body { margin:0; padding:0; background:#fff; font-family: Arial, sans-serif; }
+    canvas { display: block; margin: 0 auto; background: #ffeef8; border: 2px solid #ff69b4; }
+    #startBtn {
       display: block;
       margin: 20px auto;
-      border: 4px solid #ff69b4;
-      border-radius: 15px;
-    }
-    #startBtn {
-      padding: 10px 30px;
-      font-size: 20px;
-      background-color: #ff1493;
+      padding: 10px 20px;
+      font-size: 18px;
+      background-color: #ff69b4;
       color: white;
       border: none;
       border-radius: 10px;
       cursor: pointer;
-      margin-top: 15px;
+    }
+    #startBtn:hover {
+      background-color: #ff1493;
     }
   </style>
 </head>
 <body>
-  <h1>💗 Jogo da Aninha 💗</h1>
-  <canvas id="gameCanvas" width="480" height="320"></canvas>
+  <canvas id="gameCanvas" width="400" height="600"></canvas>
   <button id="startBtn">Começar Jogo</button>
-
-  <audio id="brickSound" src="sons/som_tijolo.mp3"></audio>
-  <audio id="gameStartSound" src="sons/comecar.mp3"></audio>
-  <audio id="winSound" src="sons/vitoria.mp3"></audio>
+  <audio id="soundEffect" src="beep.mp3" preload="auto"></audio>
 
   <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
     const startBtn = document.getElementById("startBtn");
+    const soundEffect = document.getElementById("soundEffect");
 
-    let bola = {
+    const paddle = {
+      x: canvas.width / 2 - 35,
+      y: canvas.height - 20,
+      width: 70,
+      height: 10,
+      dx: 5
+    };
+
+    let ball = {
       x: canvas.width / 2,
-      y: canvas.height - 30,
-      dx: 2,
-      dy: -2,
-      raio: 10,
-      cor: "pink"
+      y: paddle.y - 10,
+      radius: 7,
+      speed: 4,
+      dx: 4,
+      dy: -4
     };
-
-    let raquete = {
-      altura: 10,
-      largura: 75,
-      x: (canvas.width - 75) / 2
-    };
-
-    let direita = false;
-    let esquerda = false;
 
     let bricks = [];
-    let colunas = 5;
-    let linhas = 3;
-    let largura = 75;
-    let altura = 20;
-    let padding = 10;
-    let offsetTop = 30;
-    let offsetLeft = 30;
+    const brickRowCount = 5;
+    const brickColumnCount = 7;
+    const brickWidth = 50;
+    const brickHeight = 20;
+    const brickPadding = 5;
+    const brickOffsetTop = 30;
+    const brickOffsetLeft = 15;
 
-    let pontos = 0;
-    let recorde = 0;
-    let faseAtual = 1;
-    let jogoRodando = false;
+    let rightPressed = false;
+    let leftPressed = false;
+    let score = 0;
+    let level = 1;
 
-    function inicializarFase() {
+    function playSound() {
+      soundEffect.currentTime = 0;
+      soundEffect.play();
+    }
+
+    function createBricks() {
       bricks = [];
-
-      if (faseAtual === 3) {
-        // Fase em forma de lua cheia com corações
-        const centerX = canvas.width / 2;
-        const centerY = 100;
-        const raio = 100;
-
-        for (let ang = 0; ang < 360; ang += 15) {
-          const rad = ang * Math.PI / 180;
-          const x = centerX + raio * Math.cos(rad);
-          const y = centerY + raio * Math.sin(rad);
-          bricks.push({ x, y, width: 30, height: 30, ativo: true });
-        }
-      } else {
-        // Fase padrão
-        for (let c = 0; c < colunas; c++) {
-          bricks[c] = [];
-          for (let l = 0; l < linhas; l++) {
-            let bx = c * (largura + padding) + offsetLeft;
-            let by = l * (altura + padding) + offsetTop;
-            bricks[c][l] = { x: bx, y: by, ativo: true };
-          }
+      for(let c=0; c<brickColumnCount; c++) {
+        for(let r=0; r<brickRowCount; r++) {
+          const brickX = c * (brickWidth + brickPadding) + brickOffsetLeft;
+          const brickY = r * (brickHeight + brickPadding) + brickOffsetTop;
+          bricks.push({ x: brickX, y: brickY, status: 1 });
         }
       }
     }
 
-    function desenharBola() {
-      ctx.beginPath();
-      ctx.arc(bola.x, bola.y, bola.raio, 0, Math.PI * 2);
-      ctx.fillStyle = bola.cor;
-      ctx.fill();
-      ctx.closePath();
-    }
-
-    function desenharRaquete() {
-      ctx.beginPath();
-      ctx.rect(raquete.x, canvas.height - raquete.altura, raquete.largura, raquete.altura);
-      ctx.fillStyle = "#ff69b4";
-      ctx.fill();
-      ctx.closePath();
-    }
-
-    function desenharBricks() {
-      if (faseAtual === 3) {
-        bricks.forEach(brick => {
-          if (brick.ativo) {
-            ctx.beginPath();
-            ctx.rect(brick.x, brick.y, brick.width, brick.height);
-            ctx.fillStyle = "#ff69b4";
-            ctx.fill();
-            ctx.closePath();
-            ctx.font = "20px Arial";
-            ctx.fillStyle = "#fff";
-            ctx.fillText("💖", brick.x + 5, brick.y + 23);
-          }
-        });
-      } else {
-        for (let c = 0; c < colunas; c++) {
-          for (let l = 0; l < linhas; l++) {
-            let b = bricks[c][l];
-            if (b.ativo) {
-              ctx.beginPath();
-              ctx.rect(b.x, b.y, largura, altura);
-              ctx.fillStyle = "#ff69b4";
-              ctx.fill();
-              ctx.closePath();
-              ctx.font = "20px Arial";
-              ctx.fillStyle = "#fff";
-              ctx.fillText("💖", b.x + 20, b.y + 18);
-            }
-          }
+    function drawBricks() {
+      for(const brick of bricks) {
+        if(brick.status === 1) {
+          ctx.beginPath();
+          ctx.arc(brick.x + brickWidth/2, brick.y + brickHeight/2, 10, 0, Math.PI * 2);
+          ctx.fillStyle = "#ff69b4";
+          ctx.fill();
+          ctx.closePath();
         }
       }
     }
 
-    function desenharPontuacao() {
+    function drawPaddle() {
+      ctx.beginPath();
+      ctx.rect(paddle.x, paddle.y, paddle.width, paddle.height);
+      ctx.fillStyle = "#ff1493";
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    function drawBall() {
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI*2);
+      ctx.fillStyle = "#ff1493";
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    function drawScore() {
       ctx.font = "16px Arial";
-      ctx.fillStyle = "#000";
-      ctx.fillText("Pontos: " + pontos, 8, 20);
-      ctx.fillText("Recorde: " + recorde, canvas.width - 120, 20);
+      ctx.fillStyle = "#ff1493";
+      ctx.fillText("Fase: " + level + " | Pontos: " + score, 10, 20);
     }
 
-    function detectarColisao() {
-      if (faseAtual === 3) {
-        bricks.forEach(b => {
-          if (b.ativo) {
-            if (bola.x > b.x && bola.x < b.x + b.width && bola.y > b.y && bola.y < b.y + b.height) {
-              bola.dy = -bola.dy;
-              b.ativo = false;
-              pontos++;
-              document.getElementById("brickSound").play();
-              bola.cor = bola.cor === "pink" ? "lightblue" : "pink";
-            }
-          }
-        });
-      } else {
-        for (let c = 0; c < colunas; c++) {
-          for (let l = 0; l < linhas; l++) {
-            let b = bricks[c][l];
-            if (b.ativo) {
-              if (bola.x > b.x && bola.x < b.x + largura && bola.y > b.y && bola.y < b.y + altura) {
-                bola.dy = -bola.dy;
-                b.ativo = false;
-                pontos++;
-                document.getElementById("brickSound").play();
-                bola.cor = bola.cor === "pink" ? "lightblue" : "pink";
-              }
-            }
-          }
-        }
-      }
-    }
-
-    function desenhar() {
-      if (!jogoRodando) return;
-
+    function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      desenharBricks();
-      desenharBola();
-      desenharRaquete();
-      desenharPontuacao();
-      detectarColisao();
+      drawBricks();
+      drawBall();
+      drawPaddle();
+      drawScore();
 
-      if (bola.x + bola.dx > canvas.width - bola.raio || bola.x + bola.dx < bola.raio) {
-        bola.dx = -bola.dx;
+      ball.x += ball.dx;
+      ball.y += ball.dy;
+
+      if(ball.x + ball.radius > canvas.width || ball.x - ball.radius < 0) {
+        ball.dx *= -1;
       }
-      if (bola.y + bola.dy < bola.raio) {
-        bola.dy = -bola.dy;
-      } else if (bola.y + bola.dy > canvas.height - bola.raio) {
-        if (bola.x > raquete.x && bola.x < raquete.x + raquete.largura) {
-          bola.dy = -bola.dy;
-        } else {
-          alert("Fim de jogo 😢");
-          document.location.reload();
+      if(ball.y - ball.radius < 0) {
+        ball.dy *= -1;
+      }
+      if(ball.y + ball.radius > canvas.height) {
+        resetGame();
+        return;
+      }
+
+      if(ball.x > paddle.x && ball.x < paddle.x + paddle.width && ball.y + ball.radius > paddle.y) {
+        ball.dy = -ball.speed;
+      }
+
+      for(const brick of bricks) {
+        if(brick.status === 1 && ball.x > brick.x && ball.x < brick.x + brickWidth && ball.y > brick.y && ball.y < brick.y + brickHeight) {
+          ball.dy *= -1;
+          brick.status = 0;
+          score++;
+          playSound();
+          if(score % (brickRowCount * brickColumnCount) === 0) {
+            level++;
+            if (level > 5) {
+              alert("🎉 Você zerou o jogo da Aninha!");
+              document.location.reload();
+            } else {
+              nextLevel();
+            }
+          }
         }
       }
 
-      bola.x += bola.dx;
-      bola.y += bola.dy;
-
-      if (direita && raquete.x < canvas.width - raquete.largura) {
-        raquete.x += 7;
-      } else if (esquerda && raquete.x > 0) {
-        raquete.x -= 7;
+      if(rightPressed && paddle.x + paddle.width < canvas.width) {
+        paddle.x += paddle.dx;
+      } else if(leftPressed && paddle.x > 0) {
+        paddle.x -= paddle.dx;
       }
 
-      if (pontos > recorde) recorde = pontos;
-
-      const totalBricks = faseAtual === 3
-        ? bricks.filter(b => b.ativo).length
-        : [].concat(...bricks).filter(b => b.ativo).length;
-
-      if (totalBricks === 0) {
-        document.getElementById("winSound").play();
-        alert("Você venceu essa fase! 🎉");
-        faseAtual++;
-        if (faseAtual > 3) faseAtual = 1;
-        pontos = 0;
-        inicializarFase();
-        bola.x = canvas.width / 2;
-        bola.y = canvas.height - 30;
-        bola.dx = 2;
-        bola.dy = -2;
-      }
-
-      requestAnimationFrame(desenhar);
+      requestAnimationFrame(draw);
     }
 
-    document.addEventListener("keydown", e => {
-      if (e.key === "Right" || e.key === "ArrowRight") direita = true;
-      else if (e.key === "Left" || e.key === "ArrowLeft") esquerda = true;
-    });
+    function nextLevel() {
+      ball.speed += 0.5;
+      ball.dx = ball.speed;
+      ball.dy = -ball.speed;
+      ball.x = canvas.width / 2;
+      ball.y = paddle.y - 10;
+      paddle.x = canvas.width / 2 - 35;
+      createBricks();
+    }
 
-    document.addEventListener("keyup", e => {
-      if (e.key === "Right" || e.key === "ArrowRight") direita = false;
-      else if (e.key === "Left" || e.key === "ArrowLeft") esquerda = false;
-    });
+    function resetGame() {
+      alert("💔 Você perdeu! Tente novamente.");
+      document.location.reload();
+    }
+
+    function keyDownHandler(e) {
+      if(e.key === "Right" || e.key === "ArrowRight") {
+        rightPressed = true;
+      } else if(e.key === "Left" || e.key === "ArrowLeft") {
+        leftPressed = true;
+      }
+    }
+
+    function keyUpHandler(e) {
+      if(e.key === "Right" || e.key === "ArrowRight") {
+        rightPressed = false;
+      } else if(e.key === "Left" || e.key === "ArrowLeft") {
+        leftPressed = false;
+      }
+    }
+
+    function touchMoveHandler(e) {
+      const touchX = e.touches[0].clientX - canvas.getBoundingClientRect().left;
+      paddle.x = touchX - paddle.width / 2;
+    }
+
+    document.addEventListener("keydown", keyDownHandler);
+    document.addEventListener("keyup", keyUpHandler);
+    canvas.addEventListener("touchmove", touchMoveHandler);
 
     startBtn.addEventListener("click", () => {
-      document.getElementById("gameStartSound").play();
-      jogoRodando = true;
-      inicializarFase();
-      desenhar();
+      startBtn.style.display = "none";
+      createBricks();
+      draw();
     });
   </script>
 </body>
